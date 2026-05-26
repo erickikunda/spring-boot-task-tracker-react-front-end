@@ -141,7 +141,9 @@ export default function ProjectPage() {
         <ul>
           {tasks.map((t) => (
             <li key={t.id}>
-              <strong>{t.title}</strong>{' '}
+              <Link to={`/projects/${projectId}/tasks/${t.id}`}>
+                <strong>{t.title}</strong>
+              </Link>{' '}
               <select
                 value={t.status}
                 onChange={(e) => handleStatusChange(t, e.target.value as TaskStatus)}

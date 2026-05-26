@@ -47,6 +47,17 @@ export async function assignTask(
   return data;
 }
 
+export async function getTask(projectId: string, taskId: string): Promise<TaskResponse> {
+  const { data } = await client.get<TaskResponse>(
+    `/api/v1/projects/${projectId}/tasks/${taskId}`,
+  );
+  return data;
+}
+
+export async function unassignTask(projectId: string, taskId: string): Promise<void> {
+  await client.delete(`/api/v1/projects/${projectId}/tasks/${taskId}/assignee`);
+}
+
 export async function deleteTask(projectId: string, taskId: string): Promise<void> {
   await client.delete(`/api/v1/projects/${projectId}/tasks/${taskId}`);
 }

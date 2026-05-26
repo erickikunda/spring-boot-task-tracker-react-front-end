@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
 import ProjectPage from './pages/ProjectPage';
 import RegisterPage from './pages/RegisterPage';
+import TaskPage from './pages/TaskPage';
 
 export default function App() {
   return (
@@ -41,6 +42,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ProjectPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects/:projectId/tasks/:taskId"
+            element={
+              <ProtectedRoute>
+                <TaskPage />
               </ProtectedRoute>
             }
           />
