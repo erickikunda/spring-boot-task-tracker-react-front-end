@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import GuestRoute from './components/GuestRoute';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import DashboardPage from './pages/DashboardPage';
@@ -11,8 +12,22 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+          <Route
+            path="/login"
+            element={
+              <GuestRoute>
+                <LoginPage />
+              </GuestRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <GuestRoute>
+                <RegisterPage />
+              </GuestRoute>
+            }
+          />
           <Route
             path="/dashboard"
             element={

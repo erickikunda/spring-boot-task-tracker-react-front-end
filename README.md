@@ -1,73 +1,86 @@
-# React + TypeScript + Vite
+# TaskFlow — React Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + TypeScript frontend for the TaskFlow REST API. Users can register, log in, manage projects, and track tasks.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+| Layer | Choice |
+|---|---|
+| UI framework | React 19 |
+| Language | TypeScript 6 |
+| Build tool | Vite 8 |
+| Router | React Router 7 |
+| HTTP client | Axios (with JWT interceptors) |
 
-## React Compiler
+## Prerequisites
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Node.js 20+
+- The [TaskFlow backend](../demo3) running on `http://localhost:8080`
 
-## Expanding the ESLint configuration
+## Setup
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The default `.env` already points at the local backend. If you need a different URL, override it:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+echo "VITE_API_BASE_URL=http://your-backend" > .env.local
 ```
+
+## Running
+
+```bash
+npm run dev        # dev server → http://localhost:5173 (port is pinned)
+npm run build      # production build → dist/
+npm run preview    # preview the production build locally
+```
+
+## Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `VITE_API_BASE_URL` | `http://localhost:8080` | Backend base URL. Override in `.env.local` — never commit secrets here. |
+
+## Project Structure
+
+```
+src/
+  api/
+    client.ts       # Axios instance — injects Bearer token, clears on 401
+    types.ts        # TypeScript mirrors of all backend DTOs
+    auth.ts         # register(), login()
+    projects.ts     # listProjects(), getProject(), createProject(), archiveProject()
+    tasks.ts        # listTasks(), createTask(), updateTaskStatus(), assignTask(), deleteTask()
+  context/
+    AuthContext.tsx # token + user state, login/register/logout actions, useAuth() hook
+  components/
+    ProtectedRoute.tsx  # redirects to /login when unauthenticated
+    GuestRoute.tsx      # redirects to /dashboard when already authenticated
+  pages/
+    LoginPage.tsx
+    RegisterPage.tsx
+    DashboardPage.tsx   # project list + create project
+    ProjectPage.tsx     # task list + create task + status updates
+  App.tsx           # provider tree + route definitions
+  main.tsx          # entry point
+```
+
+## Routes
+
+| Path | Guard | Description |
+|---|---|---|
+| `/login` | Guest only | Email + password login |
+| `/register` | Guest only | New account registration |
+| `/dashboard` | Auth required | Lists all projects you belong to |
+| `/projects/:id` | Auth required | Project detail with task list |
+| `*` | — | Redirects to `/dashboard` |
+
+## Auth Flow
+
+1. `POST /api/v1/auth/register` or `/login` → backend returns `{ token, user }`
+2. Token and user are stored in `localStorage` and held in `AuthContext`
+3. Every Axios request gets `Authorization: Bearer <token>` injected by a request interceptor
+4. On a `401` response, the interceptor removes the token from `localStorage`; the next navigation to a protected route redirects to `/login`
+5. `GuestRoute` prevents authenticated users from re-visiting `/login` or `/register`
