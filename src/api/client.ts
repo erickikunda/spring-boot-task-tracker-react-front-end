@@ -14,12 +14,14 @@ client.interceptors.request.use((config) => {
   return config;
 });
 
-// 401 means the token expired or was revoked — clear it so the app can redirect to login.
+// 401 means the token expired or was revoked — clear storage and notify React so ProtectedRoute redirects.
 client.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
     }
     return Promise.reject(error);
   }
