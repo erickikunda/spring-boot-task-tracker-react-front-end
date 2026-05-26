@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage';
 import ProjectPage from './pages/ProjectPage';
 import RegisterPage from './pages/RegisterPage';
 import TaskPage from './pages/TaskPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 export default function App() {
   return (
@@ -53,7 +54,8 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

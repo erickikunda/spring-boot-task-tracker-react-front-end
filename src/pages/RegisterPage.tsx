@@ -26,7 +26,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <main>
+    <main className="auth-page">
       <h1>Create account</h1>
       <form onSubmit={handleSubmit}>
         <label>
@@ -63,7 +63,7 @@ export default function RegisterPage() {
           />
         </label>
         {error && <p role="alert">{error}</p>}
-        <button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading} className="btn-full">
           {loading ? 'Creating account…' : 'Create account'}
         </button>
       </form>

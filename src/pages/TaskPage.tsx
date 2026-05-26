@@ -106,7 +106,7 @@ export default function TaskPage() {
       </nav>
 
       <h1>{task.title}</h1>
-      {task.description && <p>{task.description}</p>}
+      {task.description && <p className="meta">{task.description}</p>}
 
       <section>
         <h2>Details</h2>
@@ -156,12 +156,17 @@ export default function TaskPage() {
       </section>
 
       <section>
-        <h2>Comments ({comments.length})</h2>
-        {comments.length === 0 && <p>No comments yet.</p>}
+        <div className="section-header">
+          <h2>Comments ({comments.length})</h2>
+        </div>
+        {comments.length === 0 && <p className="empty">No comments yet.</p>}
         <ul>
           {comments.map((c) => (
-            <li key={c.id}>
-              <strong>{c.author.displayName}</strong>: {c.body}
+            <li key={c.id} className="comment">
+              <div className="comment-body">
+                <span className="comment-author">{c.author.displayName}</span>
+                {' '}{c.body}
+              </div>
               {c.author.id === currentUser?.id && (
                 <button type="button" onClick={() => handleDeleteComment(c.id)}>
                   Delete
@@ -188,9 +193,9 @@ export default function TaskPage() {
         </form>
       </section>
 
-      <section>
+      <section className="danger">
         <h2>Danger zone</h2>
-        <button type="button" onClick={handleDeleteTask}>
+        <button type="button" className="btn-danger" onClick={handleDeleteTask}>
           Delete task
         </button>
       </section>

@@ -25,7 +25,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main>
+    <main className="auth-page">
       <h1>Log in</h1>
       <form onSubmit={handleSubmit}>
         <label>
@@ -49,7 +49,7 @@ export default function LoginPage() {
           />
         </label>
         {error && <p role="alert">{error}</p>}
-        <button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading} className="btn-full">
           {loading ? 'Logging in…' : 'Log in'}
         </button>
       </form>

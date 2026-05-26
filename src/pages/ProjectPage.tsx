@@ -1,17 +1,21 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getProject } from '../api/projects';
+import { archiveProject, getProject } from '../api/projects';
 import { createTask, listTasks, updateTaskStatus } from '../api/tasks';
 import type { Priority, ProjectResponse, TaskResponse, TaskStatus } from '../api/types';
 
 const PRIORITIES: Priority[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 const STATUSES: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'CANCELLED'];
+const PAGE_SIZE = 20;
 
 export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const [project, setProject] = useState<ProjectResponse | null>(null);
   const [tasks, setTasks] = useState<TaskResponse[]>([]);
+  const [taskPageNum, setTaskPageNum] = useState(0);
+  const [tasksLast, setTasksLast] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
 
   const [showForm, setShowForm] = useState(false);
@@ -24,14 +28,29 @@ export default function ProjectPage() {
 
   useEffect(() => {
     if (!projectId) return;
-    Promise.all([getProject(projectId), listTasks(projectId)])
+    Promise.all([getProject(projectId), listTasks(projectId, { size: PAGE_SIZE })])
       .then(([proj, page]) => {
         setProject(proj);
         setTasks(page.content);
+        setTasksLast(page.last);
       })
       .catch(() => setError('Failed to load project.'))
       .finally(() => setLoading(false));
   }, [projectId]);
+
+  async function loadMore() {
+    if (!projectId) return;
+    setLoadingMore(true);
+    try {
+      const next = taskPageNum + 1;
+      const page = await listTasks(projectId, { page: next, size: PAGE_SIZE });
+      setTasks((prev) => [...prev, ...page.content]);
+      setTaskPageNum(next);
+      setTasksLast(page.last);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   async function handleCreateTask(e: FormEvent) {
     e.preventDefault();
@@ -64,12 +83,22 @@ export default function ProjectPage() {
       const updated = await updateTaskStatus(projectId, task.id, status);
       setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
     } catch {
-      // Backend rejects invalid transitions — optimistic update skipped; UI stays consistent
+      // backend enforces valid transitions — silently ignore
     }
   }
 
-  if (loading) return <p>Loading…</p>;
-  if (error) return <p role="alert">{error}</p>;
+  async function handleArchive() {
+    if (!projectId || !project) return;
+    if (!window.confirm(`Archive "${project.name}"? Members will lose write access.`)) return;
+    try {
+      setProject(await archiveProject(projectId));
+    } catch {
+      // ignore
+    }
+  }
+
+  if (loading) return <p style={{ padding: '2rem', textAlign: 'center' }}>Loading…</p>;
+  if (error) return <p role="alert" style={{ padding: '2rem' }}>{error}</p>;
   if (!project) return null;
 
   return (
@@ -77,17 +106,28 @@ export default function ProjectPage() {
       <nav>
         <Link to="/dashboard">← Dashboard</Link>
       </nav>
-      <h1>{project.name}</h1>
+
+      <div className="page-header">
+        <h1>{project.name}</h1>
+        {project.status === 'ACTIVE' && (
+          <button type="button" onClick={handleArchive}>
+            Archive
+          </button>
+        )}
+      </div>
+
       {project.description && <p>{project.description}</p>}
-      <p>
+      <p className="meta">
         Status: {project.status} · Owner: {project.owner.displayName}
       </p>
 
       <section>
-        <h2>Tasks</h2>
-        <button type="button" onClick={() => setShowForm((v) => !v)}>
-          {showForm ? 'Cancel' : 'New task'}
-        </button>
+        <div className="section-header">
+          <h2>Tasks</h2>
+          <button type="button" onClick={() => setShowForm((v) => !v)}>
+            {showForm ? 'Cancel' : 'New task'}
+          </button>
+        </div>
 
         {showForm && (
           <form onSubmit={handleCreateTask}>
@@ -137,13 +177,14 @@ export default function ProjectPage() {
           </form>
         )}
 
-        {tasks.length === 0 && !showForm && <p>No tasks yet.</p>}
+        {tasks.length === 0 && !showForm && (
+          <p className="empty">No tasks yet. Create one above.</p>
+        )}
+
         <ul>
           {tasks.map((t) => (
-            <li key={t.id}>
-              <Link to={`/projects/${projectId}/tasks/${t.id}`}>
-                <strong>{t.title}</strong>
-              </Link>{' '}
+            <li key={t.id} className="list-item">
+              <Link to={`/projects/${projectId}/tasks/${t.id}`}>{t.title}</Link>
               <select
                 value={t.status}
                 onChange={(e) => handleStatusChange(t, e.target.value as TaskStatus)}
@@ -153,13 +194,26 @@ export default function ProjectPage() {
                     {s}
                   </option>
                 ))}
-              </select>{' '}
-              <span>{t.priority}</span>
-              {t.assignee && <span> → {t.assignee.displayName}</span>}
-              {t.dueDate && <span> · due {t.dueDate}</span>}
+              </select>
+              <span className="item-meta">
+                {t.priority}
+                {t.assignee && ` · ${t.assignee.displayName}`}
+                {t.dueDate && ` · due ${t.dueDate}`}
+              </span>
             </li>
           ))}
         </ul>
+
+        {!tasksLast && (
+          <button
+            type="button"
+            className="load-more"
+            onClick={loadMore}
+            disabled={loadingMore}
+          >
+            {loadingMore ? 'Loading…' : 'Load more'}
+          </button>
+        )}
       </section>
     </main>
   );
