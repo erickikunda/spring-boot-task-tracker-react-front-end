@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { createProject, listProjects } from '../api/projects';
 import type { ProjectResponse } from '../api/types';
 import { useAuth } from '../context/AuthContext';
+import { formatRelative } from '../utils/date';
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
@@ -42,19 +43,21 @@ export default function DashboardPage() {
 
   return (
     <main>
-      <header>
+      <div className="page-header">
         <h1>Dashboard</h1>
         <p>Welcome, {user?.displayName}</p>
         <button type="button" onClick={logout}>
           Log out
         </button>
-      </header>
+      </div>
 
       <section>
-        <h2>Projects</h2>
-        <button type="button" onClick={() => setShowForm((v) => !v)}>
-          {showForm ? 'Cancel' : 'New project'}
-        </button>
+        <div className="section-header">
+          <h2>Projects</h2>
+          <button type="button" onClick={() => setShowForm((v) => !v)}>
+            {showForm ? 'Cancel' : 'New project'}
+          </button>
+        </div>
 
         {showForm && (
           <form onSubmit={handleCreate}>
@@ -85,12 +88,17 @@ export default function DashboardPage() {
 
         {loading && <p>Loading…</p>}
         {error && <p role="alert">{error}</p>}
-        {!loading && !error && projects.length === 0 && <p>No projects yet.</p>}
+        {!loading && !error && projects.length === 0 && (
+          <p className="empty">No projects yet. Create one above.</p>
+        )}
+
         <ul>
           {projects.map((p) => (
-            <li key={p.id}>
-              <Link to={`/projects/${p.id}`}>{p.name}</Link>{' '}
-              <span>({p.status})</span>
+            <li key={p.id} className="list-item">
+              <Link to={`/projects/${p.id}`}>{p.name}</Link>
+              <span className="item-meta">
+                {p.status} · {formatRelative(p.createdAt)}
+              </span>
             </li>
           ))}
         </ul>

@@ -1,22 +1,40 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { archiveProject, getProject } from '../api/projects';
+import { addMember, archiveProject, getProject, getProjectMembers, removeMember } from '../api/projects';
 import { createTask, listTasks, updateTaskStatus } from '../api/tasks';
-import type { Priority, ProjectResponse, TaskResponse, TaskStatus } from '../api/types';
+import { listUsers } from '../api/users';
+import type { Priority, ProjectResponse, TaskResponse, TaskStatus, UserResponse } from '../api/types';
+import { useAuth } from '../context/AuthContext';
+import { formatDate } from '../utils/date';
 
 const PRIORITIES: Priority[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 const STATUSES: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'CANCELLED'];
+const FILTER_OPTIONS: Array<{ label: string; value: TaskStatus | 'ALL' }> = [
+  { label: 'All', value: 'ALL' },
+  { label: 'To do', value: 'TODO' },
+  { label: 'In progress', value: 'IN_PROGRESS' },
+  { label: 'In review', value: 'IN_REVIEW' },
+  { label: 'Done', value: 'DONE' },
+  { label: 'Cancelled', value: 'CANCELLED' },
+];
 const PAGE_SIZE = 20;
 
 export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
+  const { user: currentUser } = useAuth();
+
   const [project, setProject] = useState<ProjectResponse | null>(null);
-  const [tasks, setTasks] = useState<TaskResponse[]>([]);
-  const [taskPageNum, setTaskPageNum] = useState(0);
-  const [tasksLast, setTasksLast] = useState(true);
+  const [members, setMembers] = useState<UserResponse[]>([]);
+  const [users, setUsers] = useState<UserResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
+
+  const [statusFilter, setStatusFilter] = useState<TaskStatus | 'ALL'>('ALL');
+  const [tasks, setTasks] = useState<TaskResponse[]>([]);
+  const [taskPage, setTaskPage] = useState(0);
+  const [tasksLast, setTasksLast] = useState(true);
+  const [tasksLoading, setTasksLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState('');
@@ -26,26 +44,53 @@ export default function ProjectPage() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
 
+  const [addMemberId, setAddMemberId] = useState('');
+  const [addingMember, setAddingMember] = useState(false);
+
+  // Load project metadata, members, and full user list once per projectId
   useEffect(() => {
     if (!projectId) return;
-    Promise.all([getProject(projectId), listTasks(projectId, { size: PAGE_SIZE })])
-      .then(([proj, page]) => {
+    setLoading(true);
+    Promise.all([getProject(projectId), getProjectMembers(projectId), listUsers()])
+      .then(([proj, memberList, usersPage]) => {
         setProject(proj);
-        setTasks(page.content);
-        setTasksLast(page.last);
+        setMembers(memberList);
+        setUsers(usersPage.content);
       })
       .catch(() => setError('Failed to load project.'))
       .finally(() => setLoading(false));
   }, [projectId]);
 
+  // Reload tasks whenever projectId or status filter changes
+  useEffect(() => {
+    if (!projectId) return;
+    setTasksLoading(true);
+    setTasks([]);
+    setTaskPage(0);
+    setTasksLast(true);
+    const params = statusFilter === 'ALL'
+      ? { size: PAGE_SIZE }
+      : { status: statusFilter as TaskStatus, size: PAGE_SIZE };
+    listTasks(projectId, params)
+      .then((page) => {
+        setTasks(page.content);
+        setTasksLast(page.last);
+      })
+      .catch(() => {})
+      .finally(() => setTasksLoading(false));
+  }, [projectId, statusFilter]);
+
   async function loadMore() {
     if (!projectId) return;
     setLoadingMore(true);
     try {
-      const next = taskPageNum + 1;
-      const page = await listTasks(projectId, { page: next, size: PAGE_SIZE });
+      const next = taskPage + 1;
+      const params = statusFilter === 'ALL'
+        ? { page: next, size: PAGE_SIZE }
+        : { status: statusFilter as TaskStatus, page: next, size: PAGE_SIZE };
+      const page = await listTasks(projectId, params);
       setTasks((prev) => [...prev, ...page.content]);
-      setTaskPageNum(next);
+      setTaskPage(next);
       setTasksLast(page.last);
     } finally {
       setLoadingMore(false);
@@ -83,7 +128,7 @@ export default function ProjectPage() {
       const updated = await updateTaskStatus(projectId, task.id, status);
       setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
     } catch {
-      // backend enforces valid transitions — silently ignore
+      // backend enforces valid transitions
     }
   }
 
@@ -97,9 +142,39 @@ export default function ProjectPage() {
     }
   }
 
+  async function handleAddMember(e: FormEvent) {
+    e.preventDefault();
+    if (!projectId || !addMemberId) return;
+    setAddingMember(true);
+    try {
+      await addMember(projectId, addMemberId);
+      const updated = await getProjectMembers(projectId);
+      setMembers(updated);
+      setAddMemberId('');
+    } catch {
+      // ignore
+    } finally {
+      setAddingMember(false);
+    }
+  }
+
+  async function handleRemoveMember(userId: string) {
+    if (!projectId) return;
+    try {
+      await removeMember(projectId, userId);
+      setMembers((prev) => prev.filter((m) => m.id !== userId));
+    } catch {
+      // ignore
+    }
+  }
+
   if (loading) return <p style={{ padding: '2rem', textAlign: 'center' }}>Loading…</p>;
   if (error) return <p role="alert" style={{ padding: '2rem' }}>{error}</p>;
   if (!project) return null;
+
+  const isOwner = currentUser?.id === project.owner.id;
+  const memberIdSet = new Set(members.map((m) => m.id));
+  const addableUsers = users.filter((u) => !memberIdSet.has(u.id));
 
   return (
     <main>
@@ -109,7 +184,7 @@ export default function ProjectPage() {
 
       <div className="page-header">
         <h1>{project.name}</h1>
-        {project.status === 'ACTIVE' && (
+        {isOwner && project.status === 'ACTIVE' && (
           <button type="button" onClick={handleArchive}>
             Archive
           </button>
@@ -127,6 +202,19 @@ export default function ProjectPage() {
           <button type="button" onClick={() => setShowForm((v) => !v)}>
             {showForm ? 'Cancel' : 'New task'}
           </button>
+        </div>
+
+        <div className="filter-bar">
+          {FILTER_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              className={statusFilter === opt.value ? 'active' : undefined}
+              onClick={() => setStatusFilter(opt.value)}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
 
         {showForm && (
@@ -177,8 +265,11 @@ export default function ProjectPage() {
           </form>
         )}
 
-        {tasks.length === 0 && !showForm && (
-          <p className="empty">No tasks yet. Create one above.</p>
+        {tasksLoading && <p>Loading tasks…</p>}
+        {!tasksLoading && tasks.length === 0 && !showForm && (
+          <p className="empty">
+            {statusFilter === 'ALL' ? 'No tasks yet. Create one above.' : 'No tasks match this filter.'}
+          </p>
         )}
 
         <ul>
@@ -198,7 +289,7 @@ export default function ProjectPage() {
               <span className="item-meta">
                 {t.priority}
                 {t.assignee && ` · ${t.assignee.displayName}`}
-                {t.dueDate && ` · due ${t.dueDate}`}
+                {t.dueDate && ` · due ${formatDate(t.dueDate)}`}
               </span>
             </li>
           ))}
@@ -213,6 +304,51 @@ export default function ProjectPage() {
           >
             {loadingMore ? 'Loading…' : 'Load more'}
           </button>
+        )}
+      </section>
+
+      <section>
+        <div className="section-header">
+          <h2>Members ({members.length})</h2>
+        </div>
+
+        <ul>
+          {members.map((m) => (
+            <li key={m.id} className="list-item">
+              <span style={{ flex: 1 }}>{m.displayName}</span>
+              <span className="item-meta">{m.email}</span>
+              {m.id === project.owner.id ? (
+                <span className="pill pill-done">owner</span>
+              ) : isOwner ? (
+                <button
+                  type="button"
+                  className="btn-danger"
+                  onClick={() => handleRemoveMember(m.id)}
+                >
+                  Remove
+                </button>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+
+        {isOwner && addableUsers.length > 0 && (
+          <form onSubmit={handleAddMember}>
+            <label>
+              Add member
+              <select value={addMemberId} onChange={(e) => setAddMemberId(e.target.value)}>
+                <option value="">Select a user…</option>
+                {addableUsers.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.displayName} ({u.email})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="submit" disabled={addingMember || !addMemberId}>
+              {addingMember ? 'Adding…' : 'Add member'}
+            </button>
+          </form>
         )}
       </section>
     </main>

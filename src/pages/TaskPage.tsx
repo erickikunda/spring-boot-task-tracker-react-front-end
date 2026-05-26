@@ -5,6 +5,7 @@ import { assignTask, deleteTask, getTask, unassignTask, updateTaskStatus } from 
 import { listUsers } from '../api/users';
 import type { CommentResponse, TaskResponse, TaskStatus, UserResponse } from '../api/types';
 import { useAuth } from '../context/AuthContext';
+import { formatDate, formatRelative } from '../utils/date';
 
 const STATUSES: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'CANCELLED'];
 
@@ -131,7 +132,7 @@ export default function TaskPage() {
           {task.dueDate && (
             <>
               <dt>Due</dt>
-              <dd>{task.dueDate}</dd>
+              <dd>{formatDate(task.dueDate)}</dd>
             </>
           )}
 
@@ -165,7 +166,12 @@ export default function TaskPage() {
             <li key={c.id} className="comment">
               <div className="comment-body">
                 <span className="comment-author">{c.author.displayName}</span>
-                {' '}{c.body}
+                {' · '}
+                <span style={{ fontSize: '0.8125rem', color: 'var(--clr-muted)' }}>
+                  {formatRelative(c.createdAt)}
+                </span>
+                <br />
+                {c.body}
               </div>
               {c.author.id === currentUser?.id && (
                 <button type="button" onClick={() => handleDeleteComment(c.id)}>
