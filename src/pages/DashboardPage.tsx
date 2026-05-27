@@ -101,6 +101,7 @@ export default function DashboardPage() {
       <div className="page-header">
         <h1>Dashboard</h1>
         <p>Welcome, {user?.displayName}</p>
+        {isAdmin && <Link to="/admin/users">Admin panel</Link>}
         <button type="button" onClick={logout}>
           Log out
         </button>

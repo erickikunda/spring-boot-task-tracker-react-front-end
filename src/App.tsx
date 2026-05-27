@@ -1,7 +1,9 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import AdminRoute from './components/AdminRoute';
 import GuestRoute from './components/GuestRoute';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
+import AdminPage from './pages/AdminPage';
 import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
 import ProjectPage from './pages/ProjectPage';
@@ -52,6 +54,14 @@ export default function App() {
               <ProtectedRoute>
                 <TaskPage />
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <AdminRoute>
+                <AdminPage />
+              </AdminRoute>
             }
           />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

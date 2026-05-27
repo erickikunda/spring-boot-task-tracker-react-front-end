@@ -295,6 +295,13 @@ dd select { width: auto; }
 /* ─── Empty state ────────────────────────────────────────────────────────── */
 .empty { text-align: center; padding: 1.5rem 0; color: var(--clr-muted); font-size: 0.9375rem; }
 
+/* ─── Admin user list ────────────────────────────────────────────────────── */
+.user-info { display: flex; flex-direction: column; gap: 0.125rem; flex: 1; min-width: 0; }
+.user-name { font-weight: 500; font-size: 0.9375rem; color: var(--clr-text); }
+.user-you  { font-weight: 400; font-size: 0.8125rem; color: var(--clr-muted); }
+.user-role-cell { display: flex; flex-direction: column; gap: 0.25rem; align-items: flex-end; flex-shrink: 0; }
+.role-error { font-size: 0.75rem; color: var(--clr-danger); }
+
 /* ─── Batch update ───────────────────────────────────────────────────────── */
 .select-all-label {
   display: flex;
