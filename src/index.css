@@ -126,6 +126,7 @@ input[type="text"],
 input[type="email"],
 input[type="password"],
 input[type="date"],
+input[type="number"],
 textarea,
 select {
   width: 100%;
@@ -293,3 +294,50 @@ dd select { width: auto; }
 
 /* ─── Empty state ────────────────────────────────────────────────────────── */
 .empty { text-align: center; padding: 1.5rem 0; color: var(--clr-muted); font-size: 0.9375rem; }
+
+/* ─── Batch update ───────────────────────────────────────────────────────── */
+.select-all-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--clr-muted);
+  cursor: pointer;
+}
+
+.batch-bar {
+  border: 1px solid hsl(243 75% 59% / .3);
+  border-radius: var(--radius);
+  background: hsl(243 75% 59% / .05);
+  padding: 0.875rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.batch-bar-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--clr-primary);
+}
+
+.batch-bar-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+}
+.batch-bar-controls label { flex: 1; min-width: 100px; }
+.batch-bar-controls button { flex-shrink: 0; }
+
+.batch-result {
+  font-size: 0.875rem;
+  color: hsl(142 60% 25%);
+  background: hsl(142 71% 90%);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+}
+@media (prefers-color-scheme: dark) {
+  .batch-result { color: hsl(142 60% 75%); background: hsl(142 71% 90% / .12); }
+}

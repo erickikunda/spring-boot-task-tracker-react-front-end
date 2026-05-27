@@ -55,3 +55,9 @@ export interface PageResponse<T> {
   totalPages: number;
   last: boolean;
 }
+
+export interface BatchUpdateResult {
+  updatedCount: number;
+  batchCount: number;
+  batchSize: number;
+}

@@ -1,5 +1,5 @@
 import client from './client';
-import type { ProjectResponse, UserResponse } from './types';
+import type { BatchUpdateResult, ProjectResponse, ProjectStatus, UserResponse } from './types';
 
 export async function listProjects(): Promise<ProjectResponse[]> {
   const { data } = await client.get<ProjectResponse[]>('/api/v1/projects');
@@ -32,4 +32,16 @@ export async function addMember(projectId: string, userId: string): Promise<void
 
 export async function removeMember(projectId: string, userId: string): Promise<void> {
   await client.delete(`/api/v1/projects/${projectId}/members/${userId}`);
+}
+
+export async function batchUpdateStatus(
+  projectIds: string[],
+  newStatus: ProjectStatus,
+  batchSize = 500,
+): Promise<BatchUpdateResult> {
+  const { data } = await client.patch<BatchUpdateResult>(
+    `/api/v1/projects/batch-status?batchSize=${batchSize}`,
+    { projectIds, newStatus },
+  );
+  return data;
 }
