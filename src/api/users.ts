@@ -1,5 +1,5 @@
 import client from './client';
-import type { PageResponse, Role, UserResponse } from './types';
+import type { PageResponse, ProjectResponse, Role, UserResponse } from './types';
 
 export async function listUsers(page = 0, size = 100): Promise<PageResponse<UserResponse>> {
   const { data } = await client.get<PageResponse<UserResponse>>('/api/v1/users', {
@@ -25,5 +25,10 @@ export async function createUser(
 
 export async function updateUserRole(id: string, role: Role): Promise<UserResponse> {
   const { data } = await client.patch<UserResponse>(`/api/v1/users/${id}/role`, { role });
+  return data;
+}
+
+export async function getUserProjects(userId: string): Promise<ProjectResponse[]> {
+  const { data } = await client.get<ProjectResponse[]>(`/api/v1/users/${userId}/projects`);
   return data;
 }

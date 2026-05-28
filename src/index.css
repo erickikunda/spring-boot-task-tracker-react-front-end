@@ -302,6 +302,27 @@ dd select { width: auto; }
 .user-role-cell { display: flex; flex-direction: column; gap: 0.25rem; align-items: flex-end; flex-shrink: 0; }
 .role-error { font-size: 0.75rem; color: var(--clr-danger); }
 
+.user-projects {
+  width: 100%;
+  border-top: 1px solid var(--clr-border);
+  padding-top: 0.625rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.user-project-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--clr-bg);
+  font-size: 0.875rem;
+}
+.user-project-name { font-weight: 500; color: var(--clr-text); }
+.user-project-item .item-meta { margin-left: 0; }
+
 /* ─── Batch update ───────────────────────────────────────────────────────── */
 .select-all-label {
   display: flex;

@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { createUser, listUsers, updateUserRole } from '../api/users';
-import type { Role, UserResponse } from '../api/types';
+import { createUser, getUserProjects, listUsers, updateUserRole } from '../api/users';
+import type { ProjectResponse, Role, UserResponse } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 import { formatRelative } from '../utils/date';
 
@@ -24,6 +24,12 @@ export default function AdminPage() {
   // Track per-user role-change errors
   const [roleErrors, setRoleErrors] = useState<Record<string, string>>({});
 
+  // Per-user project panel state
+  const [expandedUsers, setExpandedUsers] = useState<Record<string, boolean>>({});
+  const [userProjects, setUserProjects] = useState<Record<string, ProjectResponse[]>>({});
+  const [projectsLoading, setProjectsLoading] = useState<Record<string, boolean>>({});
+  const [projectsError, setProjectsError] = useState<Record<string, string>>({});
+
   useEffect(() => {
     listUsers(0, 200)
       .then((page) => setUsers(page.content))
@@ -38,6 +44,24 @@ export default function AdminPage() {
       setUsers((prev) => prev.map((u) => (u.id === userId ? updated : u)));
     } catch {
       setRoleErrors((prev) => ({ ...prev, [userId]: 'Failed to update role.' }));
+    }
+  }
+
+  async function toggleProjects(userId: string) {
+    const nowExpanded = !expandedUsers[userId];
+    setExpandedUsers((prev) => ({ ...prev, [userId]: nowExpanded }));
+
+    if (nowExpanded && !userProjects[userId]) {
+      setProjectsLoading((prev) => ({ ...prev, [userId]: true }));
+      setProjectsError((prev) => ({ ...prev, [userId]: '' }));
+      try {
+        const projects = await getUserProjects(userId);
+        setUserProjects((prev) => ({ ...prev, [userId]: projects }));
+      } catch {
+        setProjectsError((prev) => ({ ...prev, [userId]: 'Failed to load projects.' }));
+      } finally {
+        setProjectsLoading((prev) => ({ ...prev, [userId]: false }));
+      }
     }
   }
 
@@ -160,7 +184,28 @@ export default function AdminPage() {
                 {roleErrors[u.id] && (
                   <span className="role-error">{roleErrors[u.id]}</span>
                 )}
+                <button type="button" onClick={() => toggleProjects(u.id)}>
+                  {expandedUsers[u.id] ? 'Hide projects' : 'Projects'}
+                </button>
               </div>
+
+              {expandedUsers[u.id] && (
+                <div className="user-projects">
+                  {projectsLoading[u.id] && <p>Loading…</p>}
+                  {projectsError[u.id] && <p role="alert">{projectsError[u.id]}</p>}
+                  {userProjects[u.id] && userProjects[u.id].length === 0 && (
+                    <p className="empty">No project memberships.</p>
+                  )}
+                  {userProjects[u.id]?.map((p) => (
+                    <div key={p.id} className="user-project-item">
+                      <span className="user-project-name">{p.name}</span>
+                      <span className="item-meta">
+                        {p.status} · owner: {p.owner.displayName}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </li>
           ))}
         </ul>
